@@ -1,0 +1,41 @@
+```
+Level editor
+  walking around?
+    <Space> toggles active/inactive/door
+    <something><direction> toggles wall
+
+Embed in e.g. github.io
+
+Mouse input
+  important?
+    click
+      directly select
+        target
+        character
+        skills
+    hover
+      monster/player info
+      best path to target
+  less important
+    drag
+      resize
+    scroll
+      map
+      status/order
+
+Undo feature
+  just save N states
+  tree?
+    check undotree implementation
+      literally exactly that would be perfect
+  replays
+
+Multiple teams
+
+Deploy
+  CLI app
+  github.io
+  online multiplayer
+
+Audio?
+```

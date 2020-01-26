@@ -1,0 +1,226 @@
+```
+Next up
+  walkovers
+    collect gold/treasure
+    trigger traps
+  room reveal
+    deDoor and redraw
+  players movement
+  select basic attack
+    implement e.g. Scenario.harm(entity)
+  apply basic attack
+  enemy attack
+  win conditions
+    clear
+    get chest
+  replace hexes as primary state
+    see back-end
+  turn order
+
+Docs
+  README
+    art
+    description
+    code
+      auto-check tags
+        tests
+        build
+
+Tests
+  now
+    load scenario
+    print scenario
+  later
+    integration
+      load, pass inputs, draw, compare
+
+Notes
+  break up TODO
+
+Refactor
+  break up Scenario
+    conversions
+      e.g. allHexes => hexes
+    graph
+      concomps
+    debug
+    draw
+    keep?
+      actions like move(entity)
+  automatically generate walls
+    wherever edge is missing
+
+State
+  replace hexes as primary state
+    allHexes?
+    rc2AllHexes?
+    rc2Thing?
+      see below
+  replace adjes?
+    edge2Asset?
+      allows removing rc from hex?
+  remove *everything* from hex?
+    primary
+      rc2Thing
+        Thing subclasses:
+          Entity
+          Obstacle etc.
+          Door
+      edge2EdgeAsset
+        or just edges/adjes?
+          (
+            things.asset ++
+            adjes.toEdges.map(pick asset based on nodes)
+          ).draw
+    secondary
+      construct each time
+        things
+        nodes
+        edges
+      "all" and "revealed" versions
+        nodes and allNodes, etc.
+    how to build fromString?
+      probably more annoying than difficult
+  edge.neighbors?
+    edgeajde?
+
+Events
+  moving
+    build path
+    print step by step
+  collect coins/treasure
+    count/inventory state
+      hex
+      entity
+  room revealing
+    steps
+      done
+        update openRooms
+      todo
+        deDoor door to normal hex
+          get walls right
+            don't want to do all manually
+              see UI
+      done
+        update hexes
+        rebuild adjes
+        redraw
+      todo
+        interrupt turn
+          store turn state in Entity?
+          later
+  victory
+  turns
+    order
+    components
+      consult state for turn interrupt
+  use-any-time skills/items?
+    same mechanic as turn interrupt?
+
+Things
+  items
+  skills
+  monsters
+    elites
+      just separate monsters for now?
+      show eliteness
+        all caps?
+        in HUD?
+          just for loading scenario?
+    store triggers
+      door unlocks
+        door opens?
+
+Movement
+  player
+    steps
+      path/destination symbols
+        one at a time
+          input uiojkl
+          backtrack or char (escape?) to unmark hex
+        prevent collision/cycles
+      before player moves
+
+Monster attacks
+  implement melee first
+    then melee, AoE
+  rethink complete algo!
+  steps
+    list targets in range
+    pick target
+    pick movement
+      melee
+        duh
+      ranged
+        farthest within range?
+      AoE
+        position with most targets
+          consider all possibilities
+            primary target placement within pattern
+            pattern orientation
+    move
+    resolve
+
+UI
+  start with plain characters
+    emoji later?
+  door issues
+    walls
+      might be surrounded
+        4 walls in addition to entryways
+          30 possibilities
+      overlaps
+        corners maybe OK
+        how to do wall above door?
+          bite bullet on smaller door?
+      deDoor on room reveal
+        see room revealing above
+  clear screen on update
+    find out how to update subsection
+      movement path
+      targets
+      new room
+        deDoor
+  sections
+    need to
+      get terminal/output size
+      draw individually
+      combine
+      scroll
+      resize
+    bottom strip
+      current event
+        pick skill
+        monster monster action
+        etc.
+      valid inputs
+        "press [] to move!"
+        current "mode"
+          should probably be pretty prominent?
+      bottom right corner
+        scenario name?
+        "? for Help"
+    upper-left strip
+      entity list
+        name
+        initiative
+        stats
+        attack (for monster)
+      highlight and/or scroll to
+        current player
+        target(s?)
+    upper-right box
+      map
+      top?
+        scenario name?
+    top strip?
+      "Terminally Hexed"?
+  keyboard input
+    as necessary
+  art
+    locked door
+  animations
+    move
+    harm
+      by type?
+```

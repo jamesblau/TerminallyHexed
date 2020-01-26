@@ -1,0 +1,63 @@
+shape
+
+relationship on graph
+range,possibilities
+...
+
+  ▁▁
+ ╱  ╲
+ ╲▁▁╱
+single hex
+0,1
+1,7
+2,
+3,
+4,
+
+  ▁▁
+ ╱  ╲▁▁
+ ╲▁▁╱  ╲
+    ╲▁▁╱
+two connected
+0,6
+1,30?
+2,
+3,
+4,
+
+     ▁▁
+  ▁▁╱  ╲
+ ╱  ╲▁▁╱
+ ╲▁▁╱  ╲
+    ╲▁▁╱
+three connected
+0,
+1,
+2,
+3,
+4,
+
+  ▁▁
+ ╱  ╲▁▁
+ ╲▁▁╱  ╲▁▁
+    ╲▁▁╱  ╲
+       ╲▁▁╱
+three colinear
+0,
+1,
+2,
+3,
+4,
+
+  ▁▁
+ ╱  ╲▁▁
+ ╲▁▁╱  ╲▁▁
+    ╲▁▁╱  ╲▁▁
+       ╲▁▁╱  ╲
+          ╲▁▁╱
+four colinear
+0,
+1,
+2,
+3,
+4,

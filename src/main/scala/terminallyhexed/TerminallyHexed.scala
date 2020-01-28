@@ -15,9 +15,9 @@ object TerminallyHexed extends App {
 
   val playerStarts = Map("A" -> GemMage, "C" -> PsyRat)
 
-  val demoScenario = Demo.
-    addPlayers(playerStarts).
-    setActive(Some(GemMage))
+  val demoScenario = Demo
+    .addPlayers(playerStarts)
+    .setActive(Some(GemMage))
 
   val padTop = "\n" * 1
   val padBottom = "\n" * 1

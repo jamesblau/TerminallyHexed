@@ -41,6 +41,7 @@ Refactor
   break up Scenario
     conversions
       e.g. allHexes => hexes
+      implicits?
     graph
       concomps
     debug

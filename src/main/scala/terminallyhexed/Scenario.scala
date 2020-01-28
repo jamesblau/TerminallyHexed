@@ -12,14 +12,11 @@ object Scenario {
     val hexRows = (height + 2 * offset - 1) / 4
     val hexCols = (width - 2) / 6
 
-    def loadAsset(h: Hex): Hex = {
-      val withAsset = h.copy(asset =
-        h.region2IJS.view.mapValues(_.map{
-          case (i, j) => board(i)(j)
-        }.mkString).filter(_._2.trim.nonEmpty).toMap
-      )
-      withAsset.fill(Entities.names2Entities.get(withAsset.name))
-    }
+    def loadAsset(h: Hex): Hex = h.copy(asset =
+      h.region2IJS.view.mapValues(_.map{
+        case (i, j) => board(i)(j)
+      }.mkString).filter(_._2.trim.nonEmpty).toMap
+    )
 
     val unlabeledHexes = (0 until hexRows).flatMap(r =>
       (0 until hexCols) map (Hex(r, _, offset))
@@ -42,9 +39,13 @@ object Scenario {
         )
     } ).toMap
 
-    val hexes: Set[Hex] = rc2Hex.values.toSet
+    val hexes = rc2Hex.values.toSet
 
-    new Scenario(name, winConditions, height, width, hexes)
+    val entity2RC = Entities.entities.flatMap(e =>
+      hexes.find(_.names.head == e.names.head).map(e -> _.rc)
+    ).toMap
+
+    new Scenario(name, winConditions, height, width, hexes, entity2RC)
       .buildAdjes
       .propagateRooms
       .clearHuds
@@ -57,6 +58,7 @@ case class Scenario(
   height: Int,
   width: Int,
   hexes: Set[Hex],
+  entity2RC: Map[Entity, RC],
   activeEntity: Option[Entity] = None,
   adjes: Map[RC, Set[RC]] = Map.empty,
   openRooms: Set[Int] = Set(0),
@@ -64,14 +66,13 @@ case class Scenario(
 ) {
   lazy val rc2Hex: Map[RC, Hex] = hexes.map(h => (h.rc, h)).toMap
 
-  lazy val entities: Set[Entity] = hexes.flatMap(_.occupant).toSet
+  lazy val entities: Set[Entity] = entity2RC.keys.toSet
   lazy val players: Set[Entity] = entities.filter(_.isPlayer)
   lazy val monsters: Set[Entity] = entities -- players
 
-  lazy val entity2Hex: Map[Entity, Hex] = hexes.collect {
-    case h if h.hasEntity => h.occupant.get -> h
-  }.toMap
-  lazy val entity2RC: Map[Entity, RC] = entity2Hex.view.mapValues(_.rc).toMap
+  lazy val entity2Hex: Map[Entity, Hex] = entity2RC.view.mapValues(rc2Hex).toMap
+  lazy val hex2Entity: Map[Hex, Entity] = entity2Hex.map { case (k, v) => (v, k) }
+
   lazy val rooms: Set[Int] = hexes.flatMap(_.rooms)
 
   lazy val nodes: Set[RC] = hexes.map(_.rc)
@@ -88,12 +89,15 @@ case class Scenario(
       => rc2
     }.toSet
   ).toMap)
-  def addPlayers(starts: Map[String, Entity]) = this.copy(
-    hexes = hexes.map(h => h.start match {
-      case Some(room) if starts.contains(room) => h.fill(Some(starts(room)))
-      case _ => h
-    } )
-  )
+  def addPlayers(starts: Map[String, Entity]) = {
+    val start2RC = hexes.flatMap(h =>
+      h.start.map(s => s -> h.rc).filterNot(_ => h.isDoor)
+    ).toMap
+    val newEntities2RC = starts.map { case (s, e) => e -> start2RC(s) }
+    this.copy(
+      entity2RC = entity2RC ++ newEntities2RC
+    )
+  }
 
   def connectedComponent(nodes: Set[RC]): Set[RC] = {
     val children = nodes.filterNot(rc2Hex(_).isDoor).flatMap(adjes) -- nodes
@@ -117,22 +121,27 @@ case class Scenario(
   def areColinear(s: Set[RC]) = ???
 
   def setActive(e: Option[Entity]) = this.copy(activeEntity = e)
-  def move(x: Int = 0, y: Int = 0, z: Int = 0) = {
-    val start = entity2Hex(activeEntity.get)
-    val (r, c) = start.rc
-    val endRC = Hex.goXYZ(r, c, x = x, y = y, z = z)
-    if (adjes(r, c)(endRC) && rc2Hex(endRC).unoccupied) {
+  def occupied(rc: RC) =
+    entity2RC.values.toList.contains(rc) || rc2Hex(rc).isObstacle
+  def move(e: Entity = activeEntity.get, x: Int = 0, y: Int = 0, z: Int = 0) = {
+    val start = entity2Hex(e)
+    val endRC = start.goXYZ(x = x, y = y, z = z)
+    if (adjes(start.rc)(endRC) && !occupied(endRC)) {
       val end = rc2Hex(endRC)
       val maybeNewRooms = end.rooms
       this.copy(
-        hexes = hexes - start - end + start.empty + end.fill(activeEntity),
+        entity2RC = entity2RC + (e -> endRC),
         openRooms = openRooms ++ maybeNewRooms,
       )
-      // val path = ???
-      // this.copy(events = events.push(Moving(path): Event))
     } else this
   }
+  // def mend(e: Entity, i: Int) = this.copy(hp = maxHP min (hp + i))
+  // def harm(e: Entity, i: Int) = this.copy(hp = 0 max (hp - i))
 
+  // def getMoving(e: Entity, ???) = {
+    // val path = ???
+    // this.copy(events = events.push(Moving(path): Event))
+  // }
   // def moving(p: Path) = {
     // val next = path.head
     // val maybeNewRooms = next.rooms
@@ -158,7 +167,9 @@ case class Scenario(
   def win = this.copy(won = true)
 
   lazy val blank = List.fill(height)(" " * width)
-  def drawn(hs: Set[Hex] = openHexes) = hs.foldLeft(blank) { case (l, hex) =>
+  def drawn(hs: Set[Hex] = openHexes) = hs.map(h =>
+    hex2Entity.get(h).map(e => h.setNames(e.names)).getOrElse(h)
+  ).foldLeft(blank) { case (l, hex) =>
     hex.charIJS.foldLeft(l) { case (ll, (char, (i, j))) =>
       ll.updated(i, ll(i).updated(j, char))
     }

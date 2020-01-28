@@ -41,7 +41,6 @@ case class Hex(
   offset: Int = 0,
   rooms: Set[Int] = Set.empty,
   start: Option[String] = None,
-  occupant: Option[Entity] = None,
   override val asset: Map[Char, String] = Map.empty,
 ) extends Asset(asset) {
   import Hex._
@@ -54,12 +53,12 @@ case class Hex(
   def distance(h: Hex) = ((x - h.x).abs + (y - h.y).abs + (z - h.z).abs) / 2
 
   val edge2AdjacentRC: Map[Char, RC] = Map(
-    'X' -> goXYZ(r, c, x = 1),
-    'x' -> goXYZ(r, c, x = -1),
-    'Y' -> goXYZ(r, c, y = 1),
-    'y' -> goXYZ(r, c, y = -1),
-    'Z' -> goXYZ(r, c, z = 1),
-    'z' -> goXYZ(r, c, z = -1)
+    'X' -> goXYZ(x = 1),
+    'x' -> goXYZ(x = -1),
+    'Y' -> goXYZ(y = 1),
+    'y' -> goXYZ(y = -1),
+    'Z' -> goXYZ(z = 1),
+    'z' -> goXYZ(z = -1)
   )
 
   val region2IJS: Map[Char, List[IJ]] =
@@ -73,19 +72,14 @@ case class Hex(
   val charIJS: List[(Char, IJ)] =
     region2CharIJS.values.flatten.toList
 
-  def fill(e: Option[Entity]) = e.map(entity => this.copy(
-    occupant = e,
-    asset = asset + ('N' -> entity.N) + ('n' -> entity.n)
-  )).getOrElse(this)
-  def empty = {
-    val newAsset = if (isDoor) asset ++ Door.asset else asset -- "Nn"
-    this.copy(occupant = None, asset = newAsset)
-  }
-
-  val occupied = occupant.nonEmpty || isObstacle
-  val unoccupied = !occupied
-  val hasEntity = occupant.nonEmpty
   val isDoor = rooms.size > 1
+
+  def goXYZ(x: Int = 0, y: Int = 0, z: Int = 0) = Hex.goXYZ(r, c, x, y, z)
+
+  def setNames(names: List[String]) = this.copy(
+    asset = asset + ('N' -> names(0)) + ('n' -> names(1))
+  )
+  def clearNames = setNames(List("", ""))
 
   override def toString = s"Hex($r,$c: ${name})"
   override def print = println(toString)

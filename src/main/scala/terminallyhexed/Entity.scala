@@ -16,6 +16,7 @@ case class Entity(
   assert(effects == effects -- immunities)
 
   val isMonster = !isPlayer
+  val names = List(N, n)
   val name = N.trim + " " + n.trim
 
   def fullMend = this.copy(hp = maxHP)
@@ -31,17 +32,18 @@ object Entities {
   object GemMage extends Entity("Gem ", "Mage", isPlayer = true)
   object PsyRat extends Entity("Psy ", " Rat", isPlayer = true)
 
-  object BoneGuy extends Entity("Bone", "Guy ")
+  object BoneGuy extends Entity("Bone", " Guy")
   object BigWolf extends Entity("Big ", "Wolf")
   object FireZila extends Entity("Fire", "Zila")
 
-  val names2Entities = List(
+  val entities = Set(
     GemMage,
     PsyRat,
     BoneGuy,
     BigWolf,
     FireZila,
-  ).map(e => e.name -> e).toMap
+  )
+  val names2Entities = entities.map(e => e.name -> e).toMap
   val names2Players = names2Entities.filter(_._2.isPlayer)
   val names2Monsters = names2Entities.filter(_._2.isMonster)
 }

@@ -48,7 +48,7 @@ object Asset {
 
 class Asset(val asset: Map[Char, String]) {
   import Asset._
-  val names = nameKeys.map(asset.getOrElse(_, ""))
+  val names = nameKeys.map(asset.getOrElse(_, "")).toList
   val name = names.map(_.trim).mkString(" ").trim
   val edges = asset.view.filterKeys(edgeKeys.toSet).toMap
   def walls = asset.filter { case (k, v) =>

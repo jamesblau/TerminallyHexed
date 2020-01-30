@@ -27,7 +27,7 @@ object TerminallyHexed extends App {
     maybeActiveEntity foreach (e => println(s"""
       |coins: ${e.coins}
       |hp: ${e.hp}
-      |treasure: ${e.treasure}
+      |treasure: ${e.treasure.mkString(", ")}
     """.stripMargin))
     lazy val activeEntity = maybeActiveEntity.get
 
@@ -40,23 +40,23 @@ object TerminallyHexed extends App {
     // change to return RC
     // should be only place case-matching directionChars
     def targetRC = (_: Char) match {
-      case 'l' => scenario.move(activeEntity, x = 1)
-      case 'u' => scenario.move(activeEntity, x = -1)
-      case 'i' => scenario.move(activeEntity, y = 1)
-      case 'k' => scenario.move(activeEntity, y = -1)
-      case 'j' => scenario.move(activeEntity, z = 1)
-      case 'o' => scenario.move(activeEntity, z = -1)
+      case 'l' => scenario.moveXYZ(activeEntity, x = 1)
+      case 'u' => scenario.moveXYZ(activeEntity, x = -1)
+      case 'i' => scenario.moveXYZ(activeEntity, y = 1)
+      case 'k' => scenario.moveXYZ(activeEntity, y = -1)
+      case 'j' => scenario.moveXYZ(activeEntity, z = 1)
+      case 'o' => scenario.moveXYZ(activeEntity, z = -1)
       case c => other(c)
     }
 
     // refactor to use RC
     def move = (_: Char) match {
-      case 'l' => scenario.move(activeEntity, x = 1)
-      case 'u' => scenario.move(activeEntity, x = -1)
-      case 'i' => scenario.move(activeEntity, y = 1)
-      case 'k' => scenario.move(activeEntity, y = -1)
-      case 'j' => scenario.move(activeEntity, z = 1)
-      case 'o' => scenario.move(activeEntity, z = -1)
+      case 'l' => scenario.moveXYZ(activeEntity, x = 1)
+      case 'u' => scenario.moveXYZ(activeEntity, x = -1)
+      case 'i' => scenario.moveXYZ(activeEntity, y = 1)
+      case 'k' => scenario.moveXYZ(activeEntity, y = -1)
+      case 'j' => scenario.moveXYZ(activeEntity, z = 1)
+      case 'o' => scenario.moveXYZ(activeEntity, z = -1)
       case c => other(c)
     }
     // def attack = (_: Char) match {

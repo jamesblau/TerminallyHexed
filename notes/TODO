@@ -41,6 +41,13 @@ Notes
   break up TODO
 
 Refactor
+  don't change tile names to entity names
+    in Hex:
+      override val names(rc2Entity: Map[Hex, Entity]) =
+        rc2Entity.get(rc).map(_.names).getOrElse(
+          nameKeys.map(asset.getOrElse(_, "")).toList
+        )
+    where do I change them again?
   add Scenario param frames: List[List[String]]
     List[Board] with type alias
     list of boards to print

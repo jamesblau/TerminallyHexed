@@ -79,13 +79,13 @@ case class Scenario(
   resolution: Option[String] = None,
 ) {
   lazy val rc2Hex: Map[RC, Hex] = hexes.map(h => (h.rc, h)).toMap
+  lazy val rc2Entity: Map[RC, Entity] = entity2RC.map { case (k, v) => (v, k) }
+  lazy val entity2Hex: Map[Entity, Hex] = entity2RC.view.mapValues(rc2Hex).toMap
+  lazy val hex2Entity: Map[Hex, Entity] = entity2Hex.map { case (k, v) => (v, k) }
 
   lazy val entities: Set[Entity] = entity2RC.keys.toSet
   lazy val players: Set[Entity] = entities.filter(_.isPlayer)
   lazy val monsters: Set[Entity] = entities -- players
-
-  lazy val entity2Hex: Map[Entity, Hex] = entity2RC.view.mapValues(rc2Hex).toMap
-  lazy val hex2Entity: Map[Hex, Entity] = entity2Hex.map { case (k, v) => (v, k) }
 
   lazy val rooms: Set[Int] = hexes.flatMap(_.rooms)
 
@@ -160,10 +160,8 @@ case class Scenario(
     case (scenario, eff) => scenario.mapEntity(e, _.affect(eff))
   }
 
-  // switch these: move(e, rc), moveXYZ(e, x, y, z)
-  def move(e: Entity, x: Int = 0, y: Int = 0, z: Int = 0) = {
+  def move(e: Entity, endRC: RC) = {
     val start = entity2Hex(e)
-    val endRC = start.goXYZ(x = x, y = y, z = z)
     if (adjes(start.rc)(endRC) && !isOccupied(endRC)) {
       val end = rc2Hex(endRC)
       val maybeNewRooms = end.rooms
@@ -176,7 +174,8 @@ case class Scenario(
       ).harm(updatedEntity, damage)
     } else this
   }
-  // def moveTo(e: Entity, rc: RC) = move(e, 
+  def moveXYZ(e: Entity, x: Int = 0, y: Int = 0, z: Int = 0) =
+    move(e, entity2Hex(e).goXYZ(x = x, y = y, z = z))
 
   def clearHuds = this.copy(hexes = hexes.map {
     case h if h.isDoor => h.copy(asset = h.asset ++ Door.asset)

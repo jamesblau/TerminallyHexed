@@ -1,5 +1,8 @@
 ```
 Next up
+  finish changing move
+    Scenario
+    TerminallyHexed
   walkovers
     collect gold/treasure
     trigger traps
@@ -38,7 +41,19 @@ Notes
   break up TODO
 
 Refactor
+  add Scenario param frames: List[List[String]]
+    List[Board] with type alias
+    list of boards to print
+      normally just one updated board to print
+        but multiple for animations
+          e.g. movement
+            avoid placing character on intermediate tiles along path
+              adds complication
+                e.g. coins must remain on intermediate tiles
+    check for and print all in TerminallyHexed
+      clear as printed
   break up Scenario
+    mapEntity etc.
     conversions
       e.g. allHexes => hexes
       implicits?

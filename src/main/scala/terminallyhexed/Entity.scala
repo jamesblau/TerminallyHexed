@@ -6,6 +6,8 @@ case class Entity(
   hp: Int = 0,
   maxHP: Int = 1,
   experience: Int = 0,
+  coins: Int = 0,
+  treasure: List[String] = Nil,
   defaultArmor: Int = 0,
   extraArmor: Int = 0,
   isPlayer: Boolean = false,
@@ -25,11 +27,18 @@ case class Entity(
   def affect(e: Effect) = this.copy(effects = effects + e)
   def affect(e: Set[Effect]) = this.copy(effects = effects ++ e)
 
+  def getCoins(i: Int) = this.copy(coins = coins + i)
+  def getTreasure(s: Option[String]) =
+    this.copy(treasure = (s ++ treasure).toList)
+
   override def toString = s"Entity($name)"
 }
 
 object Entities {
-  object GemMage extends Entity("Gem ", "Mage", isPlayer = true)
+  object GemMage extends Entity("Gem ", "Mage",
+    isPlayer = true,
+    maxHP = 6,
+  )
   object PsyRat extends Entity("Psy ", " Rat", isPlayer = true)
 
   object BoneGuy extends Entity("Bone", " Guy")

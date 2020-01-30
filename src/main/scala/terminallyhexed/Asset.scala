@@ -72,9 +72,9 @@ class Asset(val asset: Map[Char, String]) {
   }
   def hasDoorEdges = matches(DoorEdges)
   def isIsland = matches(Island)
-  def isMoney = matches(Money)
+  def isCoin = matches(Coin)
   def isObstacle = matches(Obstacle)
-  def isChest = matches(Chest)
+  def isTreasure = matches(Treasure)
   def isTrap = matches(Trap)
 
   def apply(c: Char): String = asset(c)

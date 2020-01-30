@@ -3,8 +3,13 @@ package terminallyhexed
 import Assets._
 
 object Scenario {
-  def fromString(string: String) = {
-    val name :: winConditions :: unPadded = string.split('\n').toList
+  def fromString(
+    name: String,
+    winConditions: String,
+    rc2Treasure: Map[RC, String],
+    string: String
+  ) = {
+    val unPadded = string.split('\n').toList
     val (height, width) = (unPadded.size, unPadded.map(_.size).max)
     val board = unPadded.map(_.padTo(width, ' '))
 
@@ -36,7 +41,7 @@ object Scenario {
           }, // so doors erase fully
           rooms = h.get('A').map(_.toInt).toSet,
           start = h.get('B')
-        )
+        ).initLoot(rc2Treasure)
     } ).toMap
 
     val hexes = rc2Hex.values.toSet
@@ -45,7 +50,15 @@ object Scenario {
       hexes.find(_.names.head == e.names.head).map(e -> _.rc)
     ).toMap
 
-    new Scenario(name, winConditions, height, width, hexes, entity2RC)
+    new Scenario(
+      name,
+      winConditions,
+      height,
+      width,
+      hexes,
+      entity2RC,
+      rc2Treasure
+    )
       .buildAdjes
       .propagateRooms
       .clearHuds
@@ -59,10 +72,11 @@ case class Scenario(
   width: Int,
   hexes: Set[Hex],
   entity2RC: Map[Entity, RC],
-  activeEntity: Option[Entity] = None,
+  rc2Treasure: Map[RC, String] = Map.empty,
+  trapDamage: Int = 1,
   adjes: Map[RC, Set[RC]] = Map.empty,
   openRooms: Set[Int] = Set(0),
-  won: Boolean = false,
+  resolution: Option[String] = None,
 ) {
   lazy val rc2Hex: Map[RC, Hex] = hexes.map(h => (h.rc, h)).toMap
 
@@ -94,9 +108,10 @@ case class Scenario(
       h.start.map(s => s -> h.rc).filterNot(_ => h.isDoor)
     ).toMap
     val newEntities2RC = starts.map { case (s, e) => e -> start2RC(s) }
-    this.copy(
-      entity2RC = entity2RC ++ newEntities2RC
-    )
+    val allEntities = (entity2RC ++ newEntities2RC).map {
+      case (e, rc) => e.fullMend -> rc
+    }
+    this.copy(entity2RC = allEntities)
   }
 
   def connectedComponent(nodes: Set[RC]): Set[RC] = {
@@ -120,37 +135,48 @@ case class Scenario(
 
   def areColinear(s: Set[RC]) = ???
 
-  def setActive(e: Option[Entity]) = this.copy(activeEntity = e)
-  def occupied(rc: RC) =
+  def matchingEntity(e: Entity) = entity2RC.keys.find(_.names == e.names)
+
+  def isOccupied(rc: RC) =
     entity2RC.values.toList.contains(rc) || rc2Hex(rc).isObstacle
-  def move(e: Entity = activeEntity.get, x: Int = 0, y: Int = 0, z: Int = 0) = {
+
+  def checkResolution =
+    if (players.isEmpty)
+      this.lose
+    else if (winConditions == "c" && monsters.isEmpty)
+      this.win
+    else
+      this
+  def filterDead = this.copy(
+    entity2RC = entity2RC.view.filterKeys(_.hp > 0).toMap
+  ).checkResolution
+
+  def mapEntity(e: Entity, f: Entity => Entity) =
+    this.copy(entity2RC = entity2RC - e + (f(e) -> entity2RC(e)))
+  def mend(e: Entity, i: Int) = mapEntity(e, _.mend(i))
+  def harm(e: Entity, i: Int) = mapEntity(e, _.harm(i)).filterDead
+  def affect(e: Entity, eff: Effect) = mapEntity(e, _.affect(eff))
+  def affect(e: Entity, s: Set[Effect]) = s.foldLeft(this) {
+    case (scenario, eff) => scenario.mapEntity(e, _.affect(eff))
+  }
+
+  // switch these: move(e, rc), moveXYZ(e, x, y, z)
+  def move(e: Entity, x: Int = 0, y: Int = 0, z: Int = 0) = {
     val start = entity2Hex(e)
     val endRC = start.goXYZ(x = x, y = y, z = z)
-    if (adjes(start.rc)(endRC) && !occupied(endRC)) {
+    if (adjes(start.rc)(endRC) && !isOccupied(endRC)) {
       val end = rc2Hex(endRC)
       val maybeNewRooms = end.rooms
+      val damage = if (end.isTrap) trapDamage else 0
+      val updatedEntity = e.getCoins(end.coins).getTreasure(end.treasure)
       this.copy(
-        entity2RC = entity2RC + (e -> endRC),
+        entity2RC = entity2RC - e + (updatedEntity -> endRC),
         openRooms = openRooms ++ maybeNewRooms,
-      )
+        hexes = hexes - end + end.looted
+      ).harm(updatedEntity, damage)
     } else this
   }
-  // def mend(e: Entity, i: Int) = this.copy(hp = maxHP min (hp + i))
-  // def harm(e: Entity, i: Int) = this.copy(hp = 0 max (hp - i))
-
-  // def getMoving(e: Entity, ???) = {
-    // val path = ???
-    // this.copy(events = events.push(Moving(path): Event))
-  // }
-  // def moving(p: Path) = {
-    // val next = path.head
-    // val maybeNewRooms = next.rooms
-    // val filled = next.fill(Some(activeEntity).get)
-    // this.copy(
-      // hexes = hexes - start - next + start.empty + filled,
-      // openRooms = openRooms ++ maybeNewRooms,
-    // )
-  // }
+  // def moveTo(e: Entity, rc: RC) = move(e, 
 
   def clearHuds = this.copy(hexes = hexes.map {
     case h if h.isDoor => h.copy(asset = h.asset ++ Door.asset)
@@ -164,15 +190,18 @@ case class Scenario(
     h.copy(asset = h.asset ++ Map('A' -> a, 'B' -> b))
   } )
 
-  def win = this.copy(won = true)
+  def win = this.copy(resolution = Some("Victory!"))
+  def lose = this.copy(resolution = Some("Defeat!"))
+  def quit = this.copy(resolution = Some("You gave up..."))
 
   lazy val blank = List.fill(height)(" " * width)
   def drawn(hs: Set[Hex] = openHexes) = hs.map(h =>
-    hex2Entity.get(h).map(e => h.setNames(e.names)).getOrElse(h)
+    hex2Entity.get(h).map(e => h.setNames(e.names)).getOrElse(h.labelCoinCount)
   ).foldLeft(blank) { case (l, hex) =>
     hex.charIJS.foldLeft(l) { case (ll, (char, (i, j))) =>
       ll.updated(i, ll(i).updated(j, char))
     }
   }
+  def print = drawn() foreach println
   override def toString = s"Scenario($name)"
 }

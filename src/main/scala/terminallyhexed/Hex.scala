@@ -39,6 +39,8 @@ case class Hex(
   r: Int = 0,
   c: Int = 0,
   offset: Int = 0,
+  coins: Int = 0,
+  treasure: Option[String] = None,
   rooms: Set[Int] = Set.empty,
   start: Option[String] = None,
   override val asset: Map[Char, String] = Map.empty,
@@ -77,9 +79,20 @@ case class Hex(
   def goXYZ(x: Int = 0, y: Int = 0, z: Int = 0) = Hex.goXYZ(r, c, x, y, z)
 
   def setNames(names: List[String]) = this.copy(
-    asset = asset + ('N' -> names(0)) + ('n' -> names(1))
+    asset = asset + ('N' -> names.head) + ('n' -> names.last)
   )
   def clearNames = setNames(List("", ""))
+
+  def initLoot(rc2Treasure: Map[RC, String]) =
+    if (isCoin)
+      this.copy(coins = 1)
+    else
+      this.copy(treasure = rc2Treasure.find(_._1 == rc).map(_._2))
+  def labelCoinCount =
+    if (isCoin) setNames(List(names.head, names.last.init + coins.toString))
+    else this
+
+  def looted = this.copy(coins = 0, treasure = None).clearNames
 
   override def toString = s"Hex($r,$c: ${name})"
   override def print = println(toString)

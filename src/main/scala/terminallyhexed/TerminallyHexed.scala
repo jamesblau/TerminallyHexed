@@ -8,85 +8,97 @@ object `package` {
   type RC = (Int, Int) // hexagon (row, column); implicit w/Hex?
   type Rooms = Set[Int] // multiple for doors
   type Edge = Set[RC] // should only be two -- implicit to enforce?
+  type Frames = List[List[String]] // for animations
 }
 
 object TerminallyHexed extends App {
   val stdIn = scala.io.Source.stdin
 
-  // val playerStarts = Map("A" -> GemMage, "C" -> PsyRat)
-  val playerStarts = Map("A" -> GemMage)
+  val playerStarts = Map("A" -> GemMage, "C" -> PsyRat)
 
-  val demoScenario = Demo.addPlayers(playerStarts).copy(trapDamage = 3)
+  val demoScenario = Demo
+    .addPlayers(playerStarts)
+    .copy(trapDamage = 3)
+    .orderTurns
+    .skipMonsterTurns
 
   val padTop = "\n" * 1
   val padBottom = "\n" * 1
   val padLeft = " " * 1
 
   def loop(scenario: Scenario): Unit = {
-    val maybeActiveEntity = scenario.matchingEntity(GemMage)
-    maybeActiveEntity foreach (e => println(s"""
-      |coins: ${e.coins}
-      |hp: ${e.hp}
-      |treasure: ${e.treasure.mkString(", ")}
-    """.stripMargin))
-    lazy val activeEntity = maybeActiveEntity.get
-
+    def printUI = {
+      scenario.players.toList.sorted foreach (e => println(List(
+        s"${e.name}: hp ${e.hp}/${e.maxHP}",
+        s"coins: ${e.coins}",
+        s"treasure: ${e.treasure.mkString("[", ", ", "]")}"
+      ).mkString(", ")))
+      println
+      scenario.monsters.toList.sorted foreach (e =>
+        println(s"${e.name}: hp ${e.hp}/${e.maxHP}")
+      )
+    }
+    printUI
     println(padTop)
-    scenario.drawn().map(padLeft + _) foreach println
+    // scenario.frames foreach { frame => printUI; frame foreach println }
+    scenario.drawn().filter(_.trim.nonEmpty).map(padLeft + _) foreach println
     println(padBottom)
+
+    val maybeActivePlayerRC = scenario.activeRC
+    val maybeActivePlayer = maybeActivePlayerRC.map(scenario.rc2Entity)
+    lazy val activePlayer = maybeActivePlayer.get
+    lazy val activePlayerRC = scenario.entity2RC(activePlayer)
+
+    // println("Turn order:"); scenario.turnOrder foreach println
+    // println("entity2RC:"); scenario.entity2RC foreach println
+    // println("rc2Entity:"); scenario.rc2Entity foreach println
+    // println("entities:"); scenario.entities foreach println
+    // println("entity2Hex:"); scenario.entity2Hex foreach println
+    // println("Maybe active player:"); println(maybeActivePlayer)
 
     val directionChars = "uiojkl"
 
-    // change to return RC
-    // should be only place case-matching directionChars
-    def targetRC = (_: Char) match {
-      case 'l' => scenario.moveXYZ(activeEntity, x = 1)
-      case 'u' => scenario.moveXYZ(activeEntity, x = -1)
-      case 'i' => scenario.moveXYZ(activeEntity, y = 1)
-      case 'k' => scenario.moveXYZ(activeEntity, y = -1)
-      case 'j' => scenario.moveXYZ(activeEntity, z = 1)
-      case 'o' => scenario.moveXYZ(activeEntity, z = -1)
-      case c => other(c)
+    def targetRC(c: Char, rc: RC): RC = c match {
+      case 'l' => Hex.goXYZ(rc, x = 1)
+      case 'u' => Hex.goXYZ(rc, x = -1)
+      case 'i' => Hex.goXYZ(rc, y = 1)
+      case 'k' => Hex.goXYZ(rc, y = -1)
+      case 'j' => Hex.goXYZ(rc, z = 1)
+      case 'o' => Hex.goXYZ(rc, z = -1)
     }
 
-    // refactor to use RC
-    def move = (_: Char) match {
-      case 'l' => scenario.moveXYZ(activeEntity, x = 1)
-      case 'u' => scenario.moveXYZ(activeEntity, x = -1)
-      case 'i' => scenario.moveXYZ(activeEntity, y = 1)
-      case 'k' => scenario.moveXYZ(activeEntity, y = -1)
-      case 'j' => scenario.moveXYZ(activeEntity, z = 1)
-      case 'o' => scenario.moveXYZ(activeEntity, z = -1)
-      case c => other(c)
-    }
-    // def attack = (_: Char) match {
-      // case 'l' => scenario.harm(activeEntity, x = 1)
-      // case 'u' => scenario.harm(activeEntity, x = -1)
-      // case 'i' => scenario.harm(activeEntity, y = 1)
-      // case 'k' => scenario.harm(activeEntity, y = -1)
-      // case 'j' => scenario.harm(activeEntity, z = 1)
-      // case 'o' => scenario.harm(activeEntity, z = -1)
-      // case c => other(c)
-    // }
+    def move(c: Char): Scenario =
+      scenario.move(activePlayer, targetRC(c, scenario.entity2RC(activePlayer)))
 
-    def other = (_: Char) match {
-      case 'q' => scenario.quit
-      case _ => scenario
+    def attack(c: Char, damage: Int = 1): Scenario = {
+      if (!directionChars.contains(c))
+        scenario
+      else {
+        val maybeTargetEntity =
+          scenario.rc2Entity.get(targetRC(c, scenario.entity2RC(activePlayer)))
+        if (maybeTargetEntity.isEmpty)
+          scenario
+        else
+          scenario.harm(maybeTargetEntity.get, damage)
+      }
     }
 
     lazy val next = stdIn.next() match {
       case c if directionChars.contains(c) => move(c)
-      // case 'a' => attack(stdIn.next())
-      case c => other(c)
+      case 'a' => attack(stdIn.next())
+      case 'n' => scenario.nextTurnOrRound
+      case 'q' => scenario.quit
+      case _ => scenario
     }
 
-    if (next.resolution.nonEmpty)
-      next.resolution foreach println
-    // else if (scenario.events.nonEmpty)
-        // scenario.tick
-    else {
-      loop(scenario = next)
+    if (scenario.resolution.nonEmpty) {
+      scenario.resolution foreach println
+    } else if (maybeActivePlayer.isEmpty) {
+      loop(scenario.orderTurns.skipMonsterTurns)
+    } else {
+      loop(next)
     }
   }
+  println
   loop(demoScenario)
 }

@@ -16,6 +16,8 @@ Terminally Hexed will feature:
 
 Terminally Hexed is in pre-alpha and is not currently recommended for use in a production environment, although the mechanics of the final game are mostly set in stone.
 
+Due to frequent changes, the gameplay animation above is not usually up-to-date.
+
 See [notes/TODO](notes/TODO) for a partial list of planned features and fixes.
 
 ### Install and Run

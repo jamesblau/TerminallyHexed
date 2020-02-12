@@ -28,7 +28,7 @@ object Asset {
     |xxNNNNzz     //         12    12          HUD A, B
     |ZAnnnnBX     //    Z -> 0      0 <- X     Y,y blank for normal, door
     |ZZddddXX     //    d -> 12012312
-    |  yyyy       //    y -> 12012312
+    |  yyyy       //      y -> 0123
   |""".tail.stripMargin.split('\n').zipWithIndex.flatMap{ case (line, i) =>
     line.take(8).zipWithIndex.collect { case (c, j) if c != ' ' =>
       (c, (i, j))

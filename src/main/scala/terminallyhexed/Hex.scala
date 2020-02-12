@@ -30,8 +30,8 @@ object Hex {
     new Hex(r, c, offset)
   }
 
-  def goXYZ(r: Int, c: Int, x: Int = 0, y: Int = 0, z: Int = 0) = {
-    val (x0, _, z0) = rc2XYZ(r, c)
+  def goXYZ(rc: RC, x: Int = 0, y: Int = 0, z: Int = 0) = {
+    val (x0, _, z0) = rc2XYZ(rc._1, rc._2)
     xz2RC(x0 + x - z, z0 + z - y)
   }
 }
@@ -53,6 +53,8 @@ case class Hex(
   val rc = (r, c)
 
   def distance(h: Hex) = ((x - h.x).abs + (y - h.y).abs + (z - h.z).abs) / 2
+
+  def goXYZ(x: Int = 0, y: Int = 0, z: Int = 0) = Hex.goXYZ(rc, x, y, z)
 
   val edge2AdjacentRC: Map[Char, RC] = Map(
     'X' -> goXYZ(x = 1),
@@ -76,8 +78,6 @@ case class Hex(
 
   val isDoor = rooms.size > 1
 
-  def goXYZ(x: Int = 0, y: Int = 0, z: Int = 0) = Hex.goXYZ(r, c, x, y, z)
-
   def setNames(names: List[String]) = this.copy(
     asset = asset + ('N' -> names.head) + ('n' -> names.last)
   )
@@ -93,6 +93,10 @@ case class Hex(
     else this
 
   def looted = this.copy(coins = 0, treasure = None).clearNames
+  def withCoin(i: Int = 1) = this.copy(
+    coins = coins + i,
+    asset = asset ++ Coin.asset
+  )
 
   override def toString = s"Hex($r,$c: ${name})"
   override def print = println(toString)

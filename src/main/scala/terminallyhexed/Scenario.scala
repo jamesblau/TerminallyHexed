@@ -73,9 +73,11 @@ case class Scenario(
   hexes: Set[Hex],
   entity2RC: Map[Entity, RC],
   rc2Treasure: Map[RC, String] = Map.empty,
+  turnOrder: List[RC] = Nil,
   trapDamage: Int = 1,
   adjes: Map[RC, Set[RC]] = Map.empty,
   openRooms: Set[Int] = Set(0),
+  frames: Frames = Nil,
   resolution: Option[String] = None,
 ) {
   lazy val rc2Hex: Map[RC, Hex] = hexes.map(h => (h.rc, h)).toMap
@@ -86,6 +88,7 @@ case class Scenario(
   lazy val entities: Set[Entity] = entity2RC.keys.toSet
   lazy val players: Set[Entity] = entities.filter(_.isPlayer)
   lazy val monsters: Set[Entity] = entities -- players
+  lazy val activeRC: Option[RC] = turnOrder.headOption
 
   lazy val rooms: Set[Int] = hexes.flatMap(_.rooms)
 
@@ -97,22 +100,30 @@ case class Scenario(
   lazy val openHexes = hexes.filter(_.rooms.filter(openRooms).nonEmpty)
   lazy val openNodes = openHexes.map(_.rc)
 
+  def addPlayers(playerStarts: Map[String, Entity]) = {
+    val start2RC = hexes.flatMap(h =>
+      h.start.map(s => s -> h.rc).filterNot(_ => h.isDoor)
+    ).toMap
+    val newEntities2RC = playerStarts.map { case (s, e) => e -> start2RC(s) }
+    val allEntities2RC = (entity2RC ++ newEntities2RC).map {
+      case (e, rc) => e.fullMend -> rc
+    }
+    this.copy(entity2RC = allEntities2RC)
+  }
   def buildAdjes = this.copy(adjes = rc2Hex.view.mapValues(h =>
     h.edge2AdjacentRC.toList.collect{ case (e, rc2)
       if rc2Hex.contains(rc2) && h.get(e).map(_ != Island(e)).getOrElse(true)
       => rc2
     }.toSet
   ).toMap)
-  def addPlayers(starts: Map[String, Entity]) = {
-    val start2RC = hexes.flatMap(h =>
-      h.start.map(s => s -> h.rc).filterNot(_ => h.isDoor)
-    ).toMap
-    val newEntities2RC = starts.map { case (s, e) => e -> start2RC(s) }
-    val allEntities = (entity2RC ++ newEntities2RC).map {
-      case (e, rc) => e.fullMend -> rc
-    }
-    this.copy(entity2RC = allEntities)
-  }
+  def orderTurns = this.copy(
+    turnOrder = entity2RC.toList.sortBy(_._1.initiative).map(_._2)
+  )
+  def skipMonsterTurns = this.copy(
+    turnOrder = turnOrder.filter(rc2Entity(_).isPlayer)
+  )
+  def nextTurnOrRound = if (turnOrder.isEmpty) this.orderTurns
+    else this.copy(turnOrder = turnOrder.tail)
 
   def connectedComponent(nodes: Set[RC]): Set[RC] = {
     val children = nodes.filterNot(rc2Hex(_).isDoor).flatMap(adjes) -- nodes
@@ -135,26 +146,37 @@ case class Scenario(
 
   def areColinear(s: Set[RC]) = ???
 
-  def matchingEntity(e: Entity) = entity2RC.keys.find(_.names == e.names)
+  def maybeMatchingEntity(e: Entity) = entity2RC.keys.find(_.names == e.names)
 
   def isOccupied(rc: RC) =
     entity2RC.values.toList.contains(rc) || rc2Hex(rc).isObstacle
 
-  def checkResolution =
+  def maybeResolve =
     if (players.isEmpty)
       this.lose
     else if (winConditions == "c" && monsters.isEmpty)
       this.win
     else
       this
-  def filterDead = this.copy(
-    entity2RC = entity2RC.view.filterKeys(_.hp > 0).toMap
-  ).checkResolution
+  def buryDead = {
+    val deadEntity2RC = entity2RC.filter(_._1.hp <= 0)
+    val (deadEntities, deadRCs) = deadEntity2RC.toList.unzip
+    val deadPlayerHexes = deadEntity2RC.filter(_._1.isPlayer).values.map(rc2Hex)
+    val deadMonsterHexes = deadEntity2RC.filter(_._1.isMonster).values.map(rc2Hex)
+    val deadHexes = deadPlayerHexes ++ deadMonsterHexes
+    val clearedHexes = deadPlayerHexes.map(_.clearNames)
+    val coinyHexes = deadMonsterHexes.map(_.withCoin(1))
+    this.copy(
+      hexes = hexes -- deadHexes ++ clearedHexes ++ coinyHexes,
+      entity2RC = entity2RC -- deadEntities,
+      turnOrder = turnOrder.filterNot(deadRCs.contains)
+    ).maybeResolve
+  }
 
   def mapEntity(e: Entity, f: Entity => Entity) =
     this.copy(entity2RC = entity2RC - e + (f(e) -> entity2RC(e)))
   def mend(e: Entity, i: Int) = mapEntity(e, _.mend(i))
-  def harm(e: Entity, i: Int) = mapEntity(e, _.harm(i)).filterDead
+  def harm(e: Entity, i: Int) = mapEntity(e, _.harm(i)).buryDead
   def affect(e: Entity, eff: Effect) = mapEntity(e, _.affect(eff))
   def affect(e: Entity, s: Set[Effect]) = s.foldLeft(this) {
     case (scenario, eff) => scenario.mapEntity(e, _.affect(eff))
@@ -168,9 +190,10 @@ case class Scenario(
       val damage = if (end.isTrap) trapDamage else 0
       val updatedEntity = e.getCoins(end.coins).getTreasure(end.treasure)
       this.copy(
+        hexes = hexes - end + end.looted,
         entity2RC = entity2RC - e + (updatedEntity -> endRC),
+        turnOrder = endRC :: turnOrder.tail,
         openRooms = openRooms ++ maybeNewRooms,
-        hexes = hexes - end + end.looted
       ).harm(updatedEntity, damage)
     } else this
   }
@@ -201,6 +224,7 @@ case class Scenario(
       ll.updated(i, ll(i).updated(j, char))
     }
   }
+  def addFrame = this.copy(frames = drawn() :: frames)
   def print = drawn() foreach println
   override def toString = s"Scenario($name)"
 }

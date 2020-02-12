@@ -22,8 +22,8 @@ object TerminallyHexed extends App {
     .orderTurns
     .skipMonsterTurns
 
-  val padTop = "\n" * 1
-  val padBottom = "\n" * 1
+  val padTop = "\n" * 20
+  val padBottom = "\n" * 5
   val padLeft = " " * 1
 
   def loop(scenario: Scenario): Unit = {
@@ -38,9 +38,9 @@ object TerminallyHexed extends App {
         println(s"${e.name}: hp ${e.hp}/${e.maxHP}")
       )
     }
-    printUI
-    println(padTop)
     // scenario.frames foreach { frame => printUI; frame foreach println }
+    println(padTop)
+    printUI
     scenario.drawn().filter(_.trim.nonEmpty).map(padLeft + _) foreach println
     println(padBottom)
 
@@ -54,7 +54,7 @@ object TerminallyHexed extends App {
     // println("rc2Entity:"); scenario.rc2Entity foreach println
     // println("entities:"); scenario.entities foreach println
     // println("entity2Hex:"); scenario.entity2Hex foreach println
-    // println("Maybe active player:"); println(maybeActivePlayer)
+    // println(s"Maybe active player: ${maybeActivePlayer}")
 
     val directionChars = "uiojkl"
 
@@ -96,7 +96,7 @@ object TerminallyHexed extends App {
     } else if (maybeActivePlayer.isEmpty) {
       loop(scenario.orderTurns.skipMonsterTurns)
     } else {
-      loop(next)
+      loop(next.clearFrames)
     }
   }
   println

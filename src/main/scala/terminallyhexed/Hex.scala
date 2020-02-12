@@ -21,15 +21,6 @@ object Hex {
     j0 / 6,
   )
 
-  def fromXZ(x: Int, z: Int, offset: Int = 0) = {
-    val (r, c) = xz2RC(x, z)
-    new Hex(r, c, offset)
-  }
-  def fromI0J0(i0: Int, j0: Int, offset: Int = 0) = {
-    val (r, c) = i0j02RC(i0, j0, offset)
-    new Hex(r, c, offset)
-  }
-
   def goXYZ(rc: RC, x: Int = 0, y: Int = 0, z: Int = 0) = {
     val (x0, _, z0) = rc2XYZ(rc._1, rc._2)
     xz2RC(x0 + x - z, z0 + z - y)

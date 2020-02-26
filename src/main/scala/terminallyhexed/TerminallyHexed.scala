@@ -54,7 +54,9 @@ object TerminallyHexed extends App {
     // println("rc2Entity:"); scenario.rc2Entity foreach println
     // println("entities:"); scenario.entities foreach println
     // println("entity2Hex:"); scenario.entity2Hex foreach println
+    // println("adjes:"); scenario.adjes foreach println
     // println(s"Maybe active player: ${maybeActivePlayer}")
+    // scenario.labelRC.print
 
     val directionChars = "uiojkl"
 

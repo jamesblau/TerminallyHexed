@@ -84,9 +84,11 @@ case class Scenario(
   def areColinear(s: Set[RC]) = ???
 
   // Entities
+
   def maybeMatchingEntity(e: Entity) = entity2RC.keys.find(_.names == e.names)
   def isOccupied(rc: RC) =
     entity2RC.values.toList.contains(rc) || rc2Hex(rc).isObstacle
+
   def buryDead = {
     val deadEntity2RC = entity2RC.filter(_._1.hp <= 0)
     val (deadEntities, deadRCs) = deadEntity2RC.toList.unzip
@@ -101,6 +103,7 @@ case class Scenario(
       turnOrder = turnOrder.filterNot(deadRCs.contains)
     ).maybeResolve.addFrame
   }
+
   def mapEntity(e: Entity, f: Entity => Entity) =
     this.copy(entity2RC = entity2RC - e + (f(e) -> entity2RC(e)))
   def mend(e: Entity, i: Int) = mapEntity(e, _.mend(i))
@@ -109,6 +112,7 @@ case class Scenario(
   def affect(e: Entity, s: Set[Effect]) = s.foldLeft(this) {
     case (scenario, eff) => scenario.mapEntity(e, _.affect(eff))
   }
+
   def move(e: Entity, endRC: RC) = {
     val start = entity2Hex(e)
     if (adjes(start.rc)(endRC) && !isOccupied(endRC)) {
@@ -117,7 +121,7 @@ case class Scenario(
       val damage = if (end.isTrap) trapDamage else 0
       val updatedEntity = e.getCoins(end.coins).getTreasure(end.treasure)
       this.copy(
-        hexes = hexes - end + end.looted,
+        hexes = hexes - end + deDoor(end.looted),
         entity2RC = entity2RC - e + (updatedEntity -> endRC),
         turnOrder = endRC :: turnOrder.tail,
         openRooms = openRooms ++ maybeNewRooms,
@@ -136,6 +140,15 @@ case class Scenario(
     else this
 
   // Graphics
+  def reWall(h: Hex) = h.edge2AdjacentRC.foldLeft(h) { case (h, (edge, rc)) =>
+    h.copy(asset = {
+      if (adjes(h.rc).contains(rc))
+        h.asset + (edge -> Normal.asset.get(edge).getOrElse("    "))
+      else h.asset + (edge -> Island.asset(edge))
+    } )
+  }
+  def deDoor(h: Hex) = if (!h.isDoor) h else reWall(h.copy(asset = Island.asset))
+  def reWallAll = this.copy(hexes = hexes.map(reWall))
   def clearHuds = this.copy(hexes = hexes.map {
     case h if h.isDoor => h.copy(asset = h.asset ++ Door.asset)
     case h => h.copy(asset = h.asset -- Asset.hudKeys.toList)

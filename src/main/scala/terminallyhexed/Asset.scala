@@ -9,17 +9,6 @@ object Asset {
   val hudKeys = "AB"
   val edgeKeys = wallKeys + upDownEdgeKeys
 
-  val region2NeighborRegion = Map(
-    'x' -> 'X',
-    'X' -> 'x',
-    'y' -> 'Y',
-    'Y' -> 'y',
-    'z' -> 'Z',
-    'Z' -> 'z',
-    'u' -> 'd',
-    'd' -> 'u'
-  )
-
   private val padSlice = (_: String).padTo(8, ' ').slice(0,8)
 
   val region2IJSOffsets: Map[Char, List[IJ]] = """

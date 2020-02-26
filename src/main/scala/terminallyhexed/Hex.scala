@@ -47,7 +47,7 @@ case class Hex(
 
   def goXYZ(x: Int = 0, y: Int = 0, z: Int = 0) = Hex.goXYZ(rc, x, y, z)
 
-  val edge2AdjacentRC: Map[Char, RC] = Map(
+  lazy val edge2AdjacentRC: Map[Char, RC] = Map(
     'X' -> goXYZ(x = 1),
     'x' -> goXYZ(x = -1),
     'Y' -> goXYZ(y = 1),
@@ -55,19 +55,20 @@ case class Hex(
     'Z' -> goXYZ(z = 1),
     'z' -> goXYZ(z = -1)
   )
+  lazy val neighborRCs = edge2AdjacentRC.values.toSet
 
-  val region2IJS: Map[Char, List[IJ]] =
+  lazy val region2IJS: Map[Char, List[IJ]] =
     Asset.region2IJSOffsets.view.mapValues(_.map {
       case (i, j) => (i + i0, j + j0)
     }).toMap
-  val region2CharIJS: Map[Char, List[(Char, IJ)]] =
+  lazy val region2CharIJS: Map[Char, List[(Char, IJ)]] =
     region2IJS.collect { case (region, ijs) if contains(region) =>
       (region, (asset(region) zip ijs).toList)
     }
-  val charIJS: List[(Char, IJ)] =
+  lazy val charIJS: List[(Char, IJ)] =
     region2CharIJS.values.flatten.toList
 
-  val isDoor = rooms.size > 1
+  lazy val isDoor = rooms.size > 1
 
   def setNames(names: List[String]) = this.copy(
     asset = asset + ('N' -> names.head) + ('n' -> names.last)
@@ -89,6 +90,14 @@ case class Hex(
     asset = asset ++ Coin.asset
   )
 
-  override def toString = s"Hex($r,$c: ${name})"
+  lazy val label = if (name.isEmpty) "Empty"
+    else if (hasDoorEdges) "Door"
+    else if (isIsland) "Island"
+    else if (isCoin) "Coin"
+    else if (isObstacle) "Obstacle"
+    else if (isTreasure) "Treasure"
+    else if (isTrap) "Trap"
+    else name
+  override def toString = s"Hex($r,$c: $label)"
   override def print = println(toString)
 }

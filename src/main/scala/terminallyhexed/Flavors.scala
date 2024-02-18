@@ -15,7 +15,7 @@ object Warm extends WeakFlavor
 object Cool extends WeakFlavor
 object Waft extends WeakFlavor
 object Dust extends WeakFlavor
-object Noon extends WeakFlavor
+object Dawn extends WeakFlavor
 object Dusk extends WeakFlavor
 
 object Flavors {
@@ -24,7 +24,7 @@ object Flavors {
     Cold -> Cool,
     Wind -> Waft,
     Dirt -> Dust,
-    Star -> Noon,
+    Star -> Dawn,
     Moon -> Dusk
   )
   val weak2Strong = strong2Weak map { case (k, v) => (v, k) }

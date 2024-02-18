@@ -1,7 +1,5 @@
 ```
 Next up
-  room reveal
-    deDoor and redraw
   players movement
   select basic attack
     implement e.g. Scenario.harm(entity)
